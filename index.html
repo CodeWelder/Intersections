@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+
+  <title>Intersections</title>
+  <link rel="icon" href="icon.png">
+  <!-- libraries -->
+  <script src="js/vue.js"></script>
+  <script src="js/p5.min.js"></script>
+
+  <link rel='stylesheet' href="style.css">
+
+</head>
+
+<body>
+
+  <div id="app">
+
+    <section class="left-side-flex container">
+
+
+      <!-- left side -->
+      <section class="left-half">
+
+        <h1>{{ title }}</h1>
+
+        <section class="left-side-flex">
+          <input class="form-control" type="text" v-model="currentSentence" :placeholder="placeHolders[0]" @keyup.enter='storeSentence'>
+          <button class="btn form-btn" @click="storeSentence">Add</button>
+        </section>
+
+        <section class="left-side-flex">
+
+          <section class="left-list-section">
+            <h2>Your list:</h2>
+
+            <ol>
+              <li v-for='(sentence, n) in storedSentences'>
+                <button @click="deleteSentence(n)">Delete</button> {{ sentence }}
+                <!-- <button>Lock</button> -->
+
+              </li>
+            </ol>
+          </section>
+
+
+        </section>
+
+
+
+
+      </section>
+
+      <!-- right side -->
+      <section class="right-half">
+
+        <section id="sketch-holder">
+
+        </section>
+
+        <!-- here was a list of ideas -->
+
+      </section>
+
+
+
+    </section>
+
+    <h2>Your ideas:</h2>
+
+    <section class="left-side-flex">
+      <input class="form-control" type="text" v-model="currentIdea" :placeholder="placeHolders[0]" @keyup.enter='storeIdea'>
+      <button class="btn form-btn" @click="storeIdea">Add</button>
+    </section>
+
+    <ul>
+      <li v-for='key in Object.keys(storedIdeas)'>
+        <b> {{ key.replace(/,/g, " + ") }} </b>
+        <ol>
+          <li v-for='(idea, i) in storedIdeas[key]'>
+            <button @click="deleteIdea(key, i)">Delete</button>{{ idea }}
+            <!-- <button>Lock</button> -->
+
+          </li>
+        </ol>
+      </li>
+    </ul>
+
+
+
+
+    <!-- <hr>
+    <p>debug line</p>
+    <p>{{ currentSentence }}</p>
+    <p>{{ storedSentences }}</p>
+    <p>{{ combinations }}</p> -->
+
+  </div>
+
+  <script>
+    var canvas;
+
+    var vm = new Vue({
+      el: '#app',
+      data: {
+        title: "Let's write your skills, hobbies and goals",
+        placeHolders: ['right here'],
+
+        storedSentences: [],
+        currentSentence: '',
+        combinations: [],
+        currentCombination: [],
+
+        storedIdeas: {},
+        currentIdea: ''
+      },
+
+      computed: {
+
+      },
+
+      mounted() {
+        if (localStorage.getItem('storedSentences')) {
+          try {
+            this.storedSentences = JSON.parse(localStorage.getItem('storedSentences'));
+            this.combineSentences();
+          } catch (e) {
+            localStorage.removeItem('storedSentences');
+          }
+        };
+
+        if (localStorage.getItem('storedIdeas')) {
+          try {
+            this.storedIdeas = JSON.parse(localStorage.getItem('storedIdeas'));
+
+          } catch (e) {
+            localStorage.removeItem('storedIdeas');
+          }
+        };
+
+      },
+
+      // execute code upon data changes
+      // value - value of upcoming change
+      watch: {
+
+      },
+
+      methods: {
+
+        storeSentence: function() {
+
+          // delete all sentences
+          if (this.currentSentence == 'clear') {
+
+            this.currentSentence = '';
+            this.storedSentences = [];
+            localStorage.removeItem('storedSentences');
+            this.combinations = [];
+
+          };
+
+          if (this.currentSentence != '') {
+            this.storedSentences.push(this.currentSentence);
+            this.currentSentence = '';
+            this.combineSentences();
+
+            //save to local storage
+            const parsed = JSON.stringify(this.storedSentences);
+            localStorage.setItem('storedSentences', parsed);
+
+          }
+        },
+
+        deleteSentence: function(n) {
+          this.storedSentences.splice(n, 1);
+
+          this.combineSentences();
+
+          //save to local storage
+          const parsed = JSON.stringify(this.storedSentences);
+          localStorage.setItem('storedSentences', parsed);
+
+        },
+
+        storeIdea: function() {
+          if (this.currentIdea != '') {
+
+            // delete all sentences
+            if (this.currentIdea == 'clear') {
+
+              this.currentIdea = '';
+              this.storedIdeas = [];
+              localStorage.removeItem('storedIdeas');
+            };
+
+            if (!(this.currentCombination in this.storedIdeas)) {
+
+              this.storedIdeas[this.currentCombination] = [];
+
+            };
+
+            if (!(this.storedIdeas[this.currentCombination].includes(this.currentIdea))) {
+
+              this.storedIdeas[this.currentCombination].push(this.currentIdea);
+
+              //save to local storage
+              const parsed = JSON.stringify(this.storedIdeas);
+              localStorage.setItem('storedIdeas', parsed);
+
+            };
+
+            this.currentIdea = '';
+
+          }
+        },
+
+        deleteIdea: function(key, i) {
+
+          this.storedIdeas[key].splice(i, 1);
+
+          //save to local storage
+          const parsed = JSON.stringify(this.storedIdeas);
+          localStorage.setItem('storedIdeas', parsed);
+
+        },
+
+        combineSentences: function() {
+          if (this.storedSentences.length > 3) {
+            let result = [];
+            for (let i of this.storedSentences) {
+              for (let j of this.storedSentences.slice(this.storedSentences.indexOf(i))) {
+                for (let k of this.storedSentences.slice(this.storedSentences.indexOf(j))) {
+                  let counter = 0;
+                  for (let l of result) {
+                    if (l.includes(i) && l.includes(j) && l.includes(k)) {
+                      counter += 1;
+                      break;
+                    } else if (i == j || i == k || j == k) {
+                      counter += 1;
+                      break;
+                    }
+                  };
+                  if (counter == 0) {
+                    result.push([i, j, k]);
+                  }
+                }
+              }
+            }
+
+            this.combinations = result.slice(1);
+            //redraw();
+          } else {
+
+            this.combinations = [];
+
+          }
+        }
+
+      }
+    });
+
+    function setup() {
+      canvas = createCanvas(windowWidth * .45, windowHeight * .45);
+      canvas.parent('sketch-holder');
+      // canvas.position(0, 0);
+
+      pixelDensity(1);
+
+
+    };
+    //var circleDiameter = 200;
+
+    function draw() {
+
+      background(255);
+      stroke(87);
+      strokeWeight(1);
+      //fill(210);
+
+      //finding a proper position for circles
+      let divCenter = [width / 2, height / 2];
+      let divSide;
+
+      if (width > height) {
+        divSide = height;
+      } else {
+        divSide = width;
+      }
+
+      let circleDiameter = divSide / 2.2;
+      let outerCircleDiameter = circleDiameter / 1.33;
+      let circleOuterRadius = outerCircleDiameter / 2;
+      let circleInnerRadius = circleOuterRadius / 2;
+
+      let circleSide = 3 * circleOuterRadius / Math.sqrt(3);
+
+      ellipseMode(CENTER);
+      fill(255, 192, 0, 128);
+      ellipse(divCenter[0], divCenter[1] - circleOuterRadius, circleDiameter, circleDiameter);
+      fill(0, 176, 240, 128);
+      ellipse(divCenter[0] - circleSide / 2, divCenter[1] + circleInnerRadius, circleDiameter, circleDiameter);
+      fill(112, 173, 71, 128);
+      ellipse(divCenter[0] + circleSide / 2, divCenter[1] + circleInnerRadius, circleDiameter, circleDiameter);
+      //ellipse(width / 2, height / 2, 300, 300);
+
+      if (vm.currentCombination != []) {
+        noStroke();
+        textAlign(CENTER);
+        fill(15);
+        textSize(25);
+        let item_ = vm.currentCombination;
+        text(item_[0], width / 2, height / 3 * 0.75);
+        text(item_[1], width / 3 * 0.75, height / 3 * 2);
+        text(item_[2], width / 3 * 2.25, height / 3 * 2);
+      };
+
+      print('loop');
+      noLoop();
+
+    };
+
+    // function mouseClicked() {
+    function touchEnded() {
+      if (dist(mouseX, mouseY, width / 2, height / 2) < 100) {
+        shuffleCombinations();
+      }
+
+      //return false;
+    };
+
+    function shuffleCombinations() {
+      if (vm.combinations.length > 1) {
+        vm.currentCombination = random_item(vm.combinations);
+        redraw();
+      }
+    };
+
+    function random_item(items) {
+
+      return items[Math.floor(Math.random() * items.length)];
+
+    };
+  </script>
+
+</body>
+
+
+
+
+</html>
